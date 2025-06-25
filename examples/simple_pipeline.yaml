@@ -1,0 +1,163 @@
+# Simple ETL Pipeline Example
+# This pipeline extracts data from PostgreSQL, transforms it, and loads to S3
+
+pipeline:
+  name: simple_etl_pipeline
+  description: Extract user data, clean it, and store in S3
+  schedule: "@daily"  # Run daily at midnight
+  
+  # Default arguments for all tasks
+  default_args:
+    owner: data-team
+    retries: 2
+    retry_delay: 300  # 5 minutes
+    email_on_failure: true
+    email: ["data-team@example.com"]
+  
+  # Data source connections
+  connections:
+    source_db:
+      type: postgres
+      config:
+        host: ${POSTGRES_HOST:-localhost}
+        port: ${POSTGRES_PORT:-5432}
+        database: ${POSTGRES_DB:-myapp}
+        user: ${POSTGRES_USER:-postgres}
+        password: ${POSTGRES_PASSWORD}
+    
+    data_lake:
+      type: s3
+      config:
+        bucket_name: ${S3_BUCKET:-my-data-lake}
+        aws_access_key_id: ${AWS_ACCESS_KEY_ID}
+        aws_secret_access_key: ${AWS_SECRET_ACCESS_KEY}
+        region: ${AWS_REGION:-us-east-1}
+  
+  # Pipeline tasks
+  tasks:
+    # Extract user data from PostgreSQL
+    - id: extract_users
+      type: extract
+      connector: source_db
+      config:
+        query: |
+          SELECT 
+            user_id,
+            email,
+            username,
+            created_at,
+            last_login,
+            status
+          FROM users
+          WHERE created_at >= '{{ ds }}'
+            AND created_at < '{{ tomorrow_ds }}'
+      outputs:
+        - raw_user_data
+    
+    # Validate data quality
+    - id: validate_users
+      type: validate
+      inputs:
+        - raw_user_data
+      config:
+        validations:
+          # Check for required fields
+          - type: null_check
+            columns: ["user_id", "email", "username"]
+          
+          # Ensure email format is valid
+          - type: regex_match
+            column: email
+            pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+          
+          # Check for duplicates
+          - type: unique_check
+            columns: ["user_id", "email"]
+          
+          # Validate status values
+          - type: value_in_set
+            column: status
+            values: ["active", "inactive", "pending"]
+      outputs:
+        - validated_user_data
+    
+    # Transform and enrich data
+    - id: transform_users
+      type: transform
+      inputs:
+        - validated_user_data
+      config:
+        transformations:
+          # Add processing timestamp
+          - type: add_column
+            name: processed_at
+            value: "{{ ts }}"
+          
+          # Calculate days since last login
+          - type: add_calculated_column
+            name: days_since_login
+            expression: "(CURRENT_DATE - last_login).days"
+          
+          # Categorize users by activity
+          - type: add_conditional_column
+            name: activity_category
+            conditions:
+              - when: "days_since_login <= 7"
+                value: "active"
+              - when: "days_since_login <= 30"
+                value: "moderate"
+              - else: "inactive"
+          
+          # Remove sensitive data
+          - type: drop_columns
+            columns: ["password_hash", "ssn"]
+      outputs:
+        - transformed_user_data
+    
+    # Load to S3 as Parquet
+    - id: load_to_s3
+      type: load
+      inputs:
+        - transformed_user_data
+      connector: data_lake
+      config:
+        key: "processed/users/{{ ds }}/users.parquet"
+        format: parquet
+        compression: snappy
+        partition_by:
+          - year: "created_at.year"
+          - month: "created_at.month"
+    
+    # Send summary notification
+    - id: send_summary
+      type: notify
+      inputs:
+        - transformed_user_data
+      config:
+        channel: email
+        recipients: ["data-team@example.com"]
+        subject: "Daily User ETL Complete - {{ ds }}"
+        template: |
+          ETL Pipeline Summary for {{ ds }}:
+          
+          - Records Processed: {{ record_count }}
+          - New Users: {{ new_users }}
+          - Active Users: {{ active_users }}
+          - Processing Time: {{ execution_time }}
+          
+          Data available at: s3://{{ bucket }}/processed/users/{{ ds }}/
+  
+  # Pipeline monitoring
+  monitoring:
+    metrics:
+      - type: record_count
+        alert_if: "< 100"
+        message: "Suspiciously low record count"
+      
+      - type: execution_time
+        alert_if: "> 3600"  # 1 hour
+        message: "Pipeline taking too long"
+    
+    sla:
+      time: "06:00"  # Must complete by 6 AM
+      grace_period: 30  # 30 minutes grace

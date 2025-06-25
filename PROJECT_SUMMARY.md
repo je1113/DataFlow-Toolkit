@@ -124,7 +124,7 @@ dataflow-toolkit/
 ├── .gitignore          # Git ignore rules
 ├── .pre-commit-config.yaml # Pre-commit hooks
 ├── CONTRIBUTING.md     # Contribution guidelines
-├── LICENSE             # Apache 2.0 license
+├── LICENSE             # MIT license
 ├── Makefile           # Build commands
 ├── pyproject.toml     # Package configuration
 └── README.md          # Project documentation
@@ -159,10 +159,9 @@ make clean
 - Performance: 10k records/second
 
 ## 🔗 Resources
-- **Repository**: https://github.com/dataflow-toolkit/dataflow-toolkit
-- **Documentation**: https://dataflow-toolkit.readthedocs.io
-- **Discord**: https://discord.gg/dataflow-toolkit
-- **Issues**: https://github.com/dataflow-toolkit/dataflow-toolkit/issues
+- **Repository**: https://github.com/je1113/DataFlow-Toolkit
+- **Documentation**: https://github.com/je1113/DataFlow-Toolkit/wiki
+- **Issues**: https://github.com/je1113/DataFlow-Toolkit/issues
 
 ---
 

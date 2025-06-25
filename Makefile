@@ -56,3 +56,20 @@ docker-build:
 
 docker-run:
 	docker run -it --rm dataflow-toolkit:latest
+
+setup-dev:
+	@echo "🚀 Setting up development environment..."
+	@./scripts/setup_dev_env.sh
+
+init-git:
+	@echo "🔧 Initializing Git repository..."
+	@./scripts/init_git_repo.sh
+
+pre-commit-all:
+	pre-commit run --all-files
+
+check-deps:
+	pip list --outdated
+
+security-check:
+	bandit -r src/

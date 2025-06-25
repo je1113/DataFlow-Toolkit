@@ -148,7 +148,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 - [Discord Server](https://discord.gg/dataflow-toolkit)
 - [GitHub Discussions](https://github.com/your-org/dataflow-toolkit/discussions)
-- [Twitter](https://twitter.com/dataflow_toolkit)
 
 ---
 

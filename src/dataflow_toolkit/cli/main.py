@@ -24,7 +24,7 @@ def init():
 
 
 @main.command()
-@click.argument('config_file', type=click.Path(exists=True))
+@click.argument("config_file", type=click.Path(exists=True))
 def validate(config_file):
     """Validate a pipeline configuration file"""
     click.echo(f"🔍 Validating pipeline configuration: {config_file}")
@@ -33,8 +33,8 @@ def validate(config_file):
 
 
 @main.command()
-@click.argument('config_file', type=click.Path(exists=True))
-@click.option('--dry-run', is_flag=True, help='Show what would be executed without running')
+@click.argument("config_file", type=click.Path(exists=True))
+@click.option("--dry-run", is_flag=True, help="Show what would be executed without running")
 def run(config_file, dry_run):
     """Run a pipeline from configuration file"""
     if dry_run:
@@ -43,7 +43,7 @@ def run(config_file, dry_run):
     else:
         click.echo(f"▶️  Running pipeline: {config_file}")
         # TODO: Implement pipeline execution
-    
+
     click.echo("✅ Pipeline completed successfully!")
 
 
